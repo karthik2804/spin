@@ -10,6 +10,7 @@ bytesize = "1.1"
 candle = { git = "https://github.com/huggingface/candle", rev = "b80348d22f8f0dadb6cc4101bde031d5de69a9a5", package = "candle-core" }
 candle-nn = { git = "https://github.com/huggingface/candle", rev = "b80348d22f8f0dadb6cc4101bde031d5de69a9a5" }
 chrono = "0.4.26"
+http = "0.2"
 llm = { git = "https://github.com/rustformers/llm", rev = "2f6ffd4435799ceaa1d1bcb5a8790e5b3e0c5663", features = [
 	"tokenizers-remote",
 	"llama",
@@ -19,6 +20,7 @@ num_cpus = "1"
 rand = "0.8.5"
 safetensors = "0.3.3"
 serde = { version = "1.0.150", features = ["derive"] }
+serde_json = "1.0"
 spin-app = { path = "../app" }
 spin-core = { path = "../core" }
 spin-world = { path = "../world" }
@@ -27,6 +29,7 @@ tokenizers = "0.13.4"
 tokio = { version = "1.32.0", features = ["macros", "sync"] }
 tracing = { workspace = true }
 uuid = { version = "1.4.1", features = ["v4"] }
+reqwest = { version = "0.11", features = ["gzip"] }
 
 [features]
 default = []

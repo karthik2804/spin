@@ -17,7 +17,7 @@ use spin_sqlite::Connection;
 use self::{
     config_provider::{ConfigProvider, ConfigProviderOpts},
     key_value::{KeyValueStore, KeyValueStoreOpts},
-    sqlite::SqliteDatabaseOpts,
+    sqlite::SqliteDatabaseOpts, llm::LlmComputeOpts,
 };
 
 pub const DEFAULT_STATE_DIR: &str = ".spin";
@@ -166,6 +166,14 @@ impl RuntimeConfig {
         }
     }
 
+    pub fn llm_compute(&self) -> &LlmComputeOpts {
+        if let Some(compute) = self.find_opt(|opts| &opts.llm_compute) {
+            compute
+        } else {
+            &LlmComputeOpts::Spin
+        }
+    }
+
     /// Returns an iterator of RuntimeConfigOpts in order of decreasing precedence
     fn opts_layers(&self) -> impl Iterator<Item = &RuntimeConfigOpts> {
         std::iter::once(&self.overrides).chain(self.files.iter().rev())
@@ -185,6 +193,9 @@ pub struct RuntimeConfigOpts {
 
     #[serde(default)]
     pub log_dir: Option<PathBuf>,
+    
+    #[serde(rename = "llm_compute", default)]
+    pub llm_compute : Option<LlmComputeOpts> ,
 
     #[serde(rename = "config_provider", default)]
     pub config_providers: Vec<ConfigProviderOpts>,

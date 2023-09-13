@@ -1,17 +1,22 @@
 mod bert;
-
 use anyhow::Context;
 use bert::{BertModel, Config};
 use candle::DType;
 use candle_nn::VarBuilder;
+use http::{HeaderMap, HeaderValue};
 use llm::{
     InferenceFeedback, InferenceParameters, InferenceResponse, InferenceSessionConfig, Model,
     ModelArchitecture, ModelKVMemoryType, ModelParameters,
 };
 use rand::SeedableRng;
+use reqwest::{Client, Url};
+use serde_json::{json, Value};
 use spin_app::{DynamicHostComponent, MetadataKey};
 use spin_core::{async_trait, HostComponent};
-use spin_world::llm::{self as wasi_llm};
+use spin_world::{
+    http_types::HttpError,
+    llm::{self as wasi_llm},
+};
 use std::{
     collections::HashMap,
     collections::{hash_map::Entry, HashSet},
@@ -20,7 +25,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokenizers::PaddingParams;
-
 pub const AI_MODELS_KEY: MetadataKey<HashSet<String>> = MetadataKey::new("ai_models");
 
 #[derive(Default)]
@@ -30,6 +34,12 @@ pub struct LLmOptions {
 
 pub struct LlmComponent {
     engine: LlmEngine,
+}
+
+#[derive(Clone)]
+pub struct RemoteComputeOpts {
+    pub remote_url: Url,
+    pub auth_token: String,
 }
 
 impl HostComponent for LlmComponent {
@@ -59,9 +69,14 @@ impl DynamicHostComponent for LlmComponent {
 }
 
 impl LlmComponent {
-    pub async fn new(registry: PathBuf, use_gpu: bool) -> Self {
+    pub async fn new(
+        registry: PathBuf,
+        use_gpu: bool,
+        remote_compute: bool,
+        remote_compute_opts: Option<RemoteComputeOpts>,
+    ) -> Self {
         let mut component = Self {
-            engine: LlmEngine::new(registry, use_gpu),
+            engine: LlmEngine::new(registry, use_gpu, remote_compute, remote_compute_opts),
         };
         // warm caches
         let _ = component
@@ -85,16 +100,25 @@ pub struct LlmEngine {
     allowed_models: HashSet<String>,
     inferencing_models: HashMap<(String, bool), Arc<dyn llm::Model>>,
     embeddings_models: HashMap<String, Arc<(tokenizers::Tokenizer, BertModel)>>,
+    remote_compute: bool,
+    remote_compute_opts: Option<RemoteComputeOpts>,
 }
 
 impl LlmEngine {
-    pub fn new(registry: PathBuf, use_gpu: bool) -> Self {
+    pub fn new(
+        registry: PathBuf,
+        use_gpu: bool,
+        remote_compute: bool,
+        remote_compute_opts: Option<RemoteComputeOpts>,
+    ) -> Self {
         Self {
             registry,
             use_gpu,
             allowed_models: Default::default(),
             inferencing_models: Default::default(),
             embeddings_models: Default::default(),
+            remote_compute,
+            remote_compute_opts,
         }
     }
 
@@ -107,6 +131,56 @@ impl LlmEngine {
         if !self.allowed_models.contains(&model) {
             return Err(access_denied_error(&model));
         }
+        let inference_params = InferenceParameters {
+            sampler: generate_sampler(params),
+        };
+        if self.remote_compute {
+            println!("using remote compute");
+            match &self.remote_compute_opts {
+                Some(val) => {
+                    let req_url = Url::parse(val.remote_url.as_str())
+                        .map_err(|_| HttpError::InvalidUrl)
+                        .unwrap();
+                    let auth_token = val.auth_token.to_owned();
+
+                    let mut headers = HeaderMap::new();
+                    headers.insert(
+                        "authorization",
+                        HeaderValue::from_str(&format!("bearer {auth_token}")).unwrap(),
+                    );
+                    let body = serde_json::to_string(&json!({
+                        "model": model,
+                        "prompt": prompt
+                    })).unwrap();
+
+                    println!("the values are {req_url} {auth_token} {body}");
+
+                    let client = Client::new();
+                    let resp = client
+                        .request(http::Method::POST, req_url.join("/infer").unwrap())
+                        .headers(headers)
+                        .body(body)
+                        .send()
+                        .await
+                        .unwrap();
+                    
+                    let ret: Value = resp.json().await.unwrap();
+                    return Ok(wasi_llm::InferencingResult {
+                        text: ret["text"].to_string(),
+                        usage: wasi_llm::InferencingUsage {
+                            prompt_token_count: ret["usage"]["promptTokenCount"].as_u64().unwrap().try_into().unwrap(),
+                            generated_token_count: ret["usage"]["generatedTokenCount"].as_u64().unwrap().try_into().unwrap(),
+                        },
+                    });
+                }
+                None => {
+                    return Err(wasi_llm::Error::RuntimeError(
+                        "remote compute options is empty".to_string(),
+                    ))
+                }
+            }
+        }
+
         let model = self.inferencing_model(model).await?;
         let cfg = InferenceSessionConfig {
             memory_k_type: ModelKVMemoryType::Float16,
@@ -116,9 +190,6 @@ impl LlmEngine {
         };
 
         let mut session = Model::start_session(model.as_ref(), cfg);
-        let inference_params = InferenceParameters {
-            sampler: generate_sampler(params),
-        };
         let mut rng = rand::rngs::StdRng::from_entropy();
         let mut text = String::new();
 
