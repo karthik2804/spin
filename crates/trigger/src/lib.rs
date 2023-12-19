@@ -155,6 +155,10 @@ impl<Executor: TriggerExecutor> TriggerExecutorBuilder<Executor> {
                         runtime_config.variables_providers(),
                     ),
                 )?;
+                self.loader.add_dynamic_host_component(
+                    &mut builder,
+                    spin_app_config::AppConfigHostComponent::new(),
+                )?;
             }
 
             Executor::configure_engine(&mut builder)?;

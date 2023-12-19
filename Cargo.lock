@@ -5718,6 +5718,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "spin-app-config"
+version = "2.2.0-pre0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dotenvy",
+ "once_cell",
+ "serde",
+ "spin-app",
+ "spin-core",
+ "spin-world",
+ "thiserror",
+ "tokio",
+ "toml 0.5.11",
+ "vaultrs",
+]
+
+[[package]]
 name = "spin-build"
 version = "2.2.0-pre0"
 dependencies = [
@@ -6307,6 +6325,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spin-app",
+ "spin-app-config",
  "spin-common",
  "spin-componentize",
  "spin-core",

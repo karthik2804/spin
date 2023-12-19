@@ -1,0 +1,16 @@
+interface app-config {
+    /// TODO
+    get: func() -> result<string, error>;
+
+    /// The set of errors which may be raised by functions in this interface. TODO
+    variant error {
+        /// The provided variable name is invalid.
+        invalid-name(string),
+        /// The provided variable is undefined.
+        undefined(string),
+        /// A variables provider specific error has occurred.
+        provider(string),
+        /// Some implementation-specific error has occurred.
+        other(string),
+    }
+}

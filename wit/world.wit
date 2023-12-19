@@ -17,4 +17,5 @@ world platform {
   import sqlite;
   import key-value;
   import variables;
+  import app-config;
 }
