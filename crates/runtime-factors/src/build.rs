@@ -49,12 +49,36 @@ impl RuntimeFactorsBuilder for FactorsBuilder {
         // This is a hack b/c we know the version of this crate will be the same as the version of Spin
         let spin_version = env!("CARGO_PKG_VERSION");
 
+        // Parse host component args (name=path pairs) into (String, PathBuf)
+        let host_components: Vec<(String, PathBuf)> = args
+            .host_components
+            .iter()
+            .map(|(name, path)| (name.clone(), PathBuf::from(path)))
+            .collect();
+
+        // Parse host component config args (name=json or name=@file.json)
+        let host_component_configs: std::collections::HashMap<String, String> = args
+            .host_component_configs
+            .iter()
+            .map(|(name, value)| {
+                let json = if let Some(file_path) = value.strip_prefix('@') {
+                    std::fs::read_to_string(file_path)
+                        .unwrap_or_else(|e| panic!("failed to read config file '{}': {}", file_path, e))
+                } else {
+                    value.clone()
+                };
+                (name.clone(), json)
+            })
+            .collect();
+
         let factors = TriggerFactors::new(
             runtime_config.state_dir(),
             config.working_dir.clone(),
             args.allow_transient_write,
             args.experimental_wasi_otel,
             spin_version,
+            host_components,
+            host_component_configs,
         )
         .context("failed to create factors")?;
         Ok((factors, runtime_config))

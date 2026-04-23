@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context as _;
 use spin_common::ui::quoted_path;
+use spin_factor_host_components::HostComponentsFactor;
 use spin_factor_key_value::runtime_config::spin::{self as key_value};
 use spin_factor_key_value::KeyValueFactor;
 use spin_factor_llm::{spin as llm, LlmFactor};
@@ -400,6 +401,12 @@ impl FactorRuntimeConfigSource<SqliteFactor> for TomlRuntimeConfigSource<'_, '_>
 }
 
 impl FactorRuntimeConfigSource<OtelFactor> for TomlRuntimeConfigSource<'_, '_> {
+    fn get_runtime_config(&mut self) -> anyhow::Result<Option<()>> {
+        Ok(None)
+    }
+}
+
+impl FactorRuntimeConfigSource<HostComponentsFactor> for TomlRuntimeConfigSource<'_, '_> {
     fn get_runtime_config(&mut self) -> anyhow::Result<Option<()>> {
         Ok(None)
     }

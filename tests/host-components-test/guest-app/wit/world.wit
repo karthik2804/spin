@@ -1,0 +1,18 @@
+package test:guest@0.1.0;
+
+world guest {
+    // Minimal WASI HTTP handler (only what we need)
+    import wasi:http/types@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:io/error@0.2.0;
+    import wasi:cli/stdout@0.2.0;
+    import wasi:cli/stderr@0.2.0;
+    import wasi:cli/stdin@0.2.0;
+    import wasi:clocks/monotonic-clock@0.2.0;
+
+    export wasi:http/incoming-handler@0.2.0;
+
+    // Custom host component imports
+    import example:cache/store@0.1.0;
+}

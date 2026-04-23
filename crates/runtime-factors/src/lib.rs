@@ -8,6 +8,7 @@ use std::path::PathBuf;
 
 use anyhow::Context as _;
 use spin_common::arg_parser::parse_kv;
+use spin_factor_host_components::HostComponentsFactor;
 use spin_factor_key_value::KeyValueFactor;
 use spin_factor_llm::LlmFactor;
 use spin_factor_otel::OtelFactor;
@@ -38,6 +39,7 @@ pub struct TriggerFactors {
     pub pg: OutboundPgFactor,
     pub mysql: OutboundMysqlFactor,
     pub llm: LlmFactor,
+    pub host_components: HostComponentsFactor,
 }
 
 impl TriggerFactors {
@@ -47,7 +49,12 @@ impl TriggerFactors {
         allow_transient_writes: bool,
         experimental_wasi_otel: bool,
         spin_version: &str,
+        host_components: Vec<(String, PathBuf)>,
+        host_component_configs: HashMap<String, String>,
     ) -> anyhow::Result<Self> {
+        // Use <state_dir>/host-components/ as the data directory for host component FS access
+        let host_component_data_dir = state_dir.as_ref().map(|d| d.join("host-components"));
+
         Ok(Self {
             otel: OtelFactor::new(spin_version, experimental_wasi_otel)?,
             wasi: wasi_factor(working_dir, allow_transient_writes),
@@ -64,6 +71,12 @@ impl TriggerFactors {
                 spin_factor_llm::spin::default_engine_creator(state_dir)
                     .context("failed to configure LLM factor")?,
             ),
+            host_components: HostComponentsFactor::new(
+                host_components,
+                host_component_configs,
+                host_component_data_dir,
+            )
+            .context("failed to configure host components factor")?,
         })
     }
 }
@@ -129,6 +142,20 @@ pub struct TriggerAppArgs {
     #[clap(long, value_parser = clap::value_parser!(VariableSource),
         value_name = "KEY=VALUE | KEY=@FILE | @FILE.json | @FILE.toml")]
     pub variable: Vec<VariableSource>,
+
+    /// Load a Wasm component as a host-provided interface at runtime.
+    /// The component's exports become available as imports for app components.
+    /// Format: name=path/to/component.wasm
+    /// Can be used multiple times for multiple host components.
+    #[clap(long = "host-component", value_parser = parse_kv)]
+    pub host_components: Vec<(String, String)>,
+
+    /// Pass JSON configuration to a host component at startup.
+    /// The host component must export a configure interface with an init function.
+    /// Format: name=<json> or name=@file.json
+    /// Can be used multiple times for multiple host components.
+    #[clap(long = "host-component-config", value_parser = parse_kv)]
+    pub host_component_configs: Vec<(String, String)>,
 
     /// Cache variables to avoid reading files twice
     #[clap(skip)]

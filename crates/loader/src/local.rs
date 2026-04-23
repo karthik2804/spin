@@ -97,9 +97,10 @@ impl LocalLoader {
             variables,
             triggers,
             components,
+            host_component: host_component_configs,
         } = manifest;
 
-        let metadata = locked_metadata(application, triggers.keys().cloned())?;
+        let metadata = locked_metadata(application, triggers.keys().cloned(), &host_component_configs)?;
 
         let variables = variables
             .into_iter()
@@ -169,14 +170,18 @@ impl LocalLoader {
 
         let component_requires_service_chaining = requires_service_chaining(&component);
 
-        let metadata = ValuesMapBuilder::new()
+        let mut metadata_builder = ValuesMapBuilder::new();
+        metadata_builder
             .string("description", component.description)
             .string_array("allowed_outbound_hosts", allowed_outbound_hosts)
             .string_array("key_value_stores", component.key_value_stores)
             .string_array("databases", component.sqlite_databases)
             .string_array("ai_models", component.ai_models)
-            .serializable("build", component.build)?
-            .take();
+            .serializable("build", component.build)?;
+        if !component.host_component.is_empty() {
+            metadata_builder.serializable("host_component", component.host_component)?;
+        }
+        let metadata = metadata_builder.take();
 
         let source = self
             .load_component_source(id, component.source.clone())
@@ -597,6 +602,7 @@ fn safe_canonicalize(path: &Path) -> std::io::Result<PathBuf> {
 fn locked_metadata(
     details: v2::AppDetails,
     trigger_types: impl Iterator<Item = String>,
+    host_component_configs: &impl serde::Serialize,
 ) -> Result<ValuesMap> {
     let mut builder = ValuesMapBuilder::new();
     builder
@@ -605,6 +611,12 @@ fn locked_metadata(
         .string("description", details.description)
         .string_array("authors", details.authors)
         .serializable("triggers", &details.trigger_global_configs)?;
+
+    // Only include host_component metadata if there are configs
+    let hc_value = serde_json::to_value(host_component_configs)?;
+    if hc_value.as_object().is_some_and(|m| !m.is_empty()) {
+        builder.entry("host_component", hc_value);
+    }
 
     // Duplicate single-trigger global options into "trigger" with "type"
     // key to maintain backward compatibility for a while.

@@ -8641,6 +8641,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "spin-factor-host-components"
+version = "4.0.0-pre0"
+dependencies = [
+ "anyhow",
+ "serde_json",
+ "spin-app",
+ "spin-factors",
+ "tokio",
+ "tracing",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
 name = "spin-factor-key-value"
 version = "4.0.0-pre0"
 dependencies = [
@@ -9228,6 +9242,7 @@ dependencies = [
  "serde",
  "spin-common",
  "spin-expressions",
+ "spin-factor-host-components",
  "spin-factor-key-value",
  "spin-factor-llm",
  "spin-factor-otel",
@@ -9265,6 +9280,7 @@ dependencies = [
  "anyhow",
  "clap",
  "spin-common",
+ "spin-factor-host-components",
  "spin-factor-key-value",
  "spin-factor-llm",
  "spin-factor-otel",

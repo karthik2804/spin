@@ -1,0 +1,6 @@
+package spin:host-component@0.1.0;
+
+interface configure {
+    get-key: func() -> string;
+    init: func(config: string) -> result<_, string>;
+}

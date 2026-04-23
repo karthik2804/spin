@@ -30,3 +30,7 @@ Here is a list of accepted SIPs:
 - [Application-Internal Service Chaining](../sips/017-service-chaining.md)
 - [Adding OTel tracing to Spin](../sips/018-adding-otel-tracing-to-spin.md)
 - [Spin Governance](../sips/019-governance.md)
+- [Component Dependencies](../sips/020-component-dependencies.md)
+- [Spin Factors](../sips/021-spin-factors.md)
+- [Build Profiles](../sips/023-build-profiles.md)
+- [Dynamic Host Components](../sips/024-dynamic-host-components.md)

@@ -229,6 +229,7 @@ fn ensure_is_acceptable_dependency(
         targets: _,
         build: _,
         tool: _,
+        host_component: _,
         dependencies_inherit_configuration: _,
         dependencies,
         profile: _,

@@ -39,6 +39,20 @@ pub struct AppManifest {
     #[serde(rename = "component")]
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub components: Map<KebabId, Component>,
+    /// Configuration tables for dynamically-loaded host components.
+    /// Each key is a host component's manifest key (as returned by its
+    /// `get-key` export), and the value is the runtime configuration
+    /// for that host component.
+    ///
+    /// Example:
+    ///
+    /// ```toml
+    /// [host_component.cache]
+    /// max_bytes = 67108864
+    /// ```
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    #[schemars(schema_with = "json_schema::map_of_toml_tables")]
+    pub host_component: Map<String, toml::Table>,
 }
 
 impl AppManifest {
@@ -433,6 +447,20 @@ pub struct Component {
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     #[schemars(schema_with = "json_schema::map_of_toml_tables")]
     pub tool: Map<String, toml::Table>,
+    /// Configuration for dynamically-loaded host components that this component
+    /// can access. Each key matches a host component's manifest key (as returned
+    /// by its `get-key` export). The presence of a key grants access; the value
+    /// is passed to the host component as per-component config.
+    ///
+    /// Example:
+    ///
+    /// ```toml
+    /// [component.my-app.host_component.cache]
+    /// allowed_stores = ["default", "sessions"]
+    /// ```
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    #[schemars(schema_with = "json_schema::map_of_toml_tables")]
+    pub host_component: Map<String, toml::Table>,
     /// If true, dependencies can invoke Spin APIs with the same permissions as the main
     /// component. If false, dependencies have no permissions (e.g. network,
     /// key-value stores, SQLite databases).
@@ -867,6 +895,7 @@ mod tests {
             targets: None,
             build: None,
             tool: Map::new(),
+            host_component: Map::new(),
             dependencies_inherit_configuration: false,
             dependencies: Default::default(),
             profile: Default::default(),

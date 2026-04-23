@@ -70,6 +70,7 @@ pub fn v1_to_v2_app(manifest: v1::AppManifestV1) -> Result<v2::AppManifest, Erro
                 targets: Default::default(),
                 build: component.build,
                 tool: Default::default(),
+                host_component: Default::default(),
                 allowed_outbound_hosts,
                 allowed_http_hosts: Vec::new(),
                 dependencies_inherit_configuration: false,
@@ -93,6 +94,7 @@ pub fn v1_to_v2_app(manifest: v1::AppManifestV1) -> Result<v2::AppManifest, Erro
         variables: app_variables,
         triggers,
         components,
+        host_component: Default::default(),
     })
 }
 

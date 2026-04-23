@@ -1,0 +1,36 @@
+/// The well-known configure interface for Spin dynamic host components.
+///
+/// Host components that export this interface will be configured by the
+/// Spin runtime at startup. The runtime calls `get-key` to discover which
+/// `spin.toml` tables apply, then calls `init` with the serialized
+/// configuration JSON.
+///
+/// This interface is defined by Spin and MUST NOT be forwarded to guest
+/// components — it is exclusively for runtime-to-host-component communication.
+package spin:host-component@0.1.0;
+
+interface configure {
+    /// Returns the manifest key this host component uses for configuration.
+    ///
+    /// The Spin runtime uses this key to look up:
+    /// - `[host_component.<key>]` in spin.toml for runtime configuration
+    /// - `[component.<id>.host_component.<key>]` for per-component configuration
+    ///
+    /// Example: returning "cache" tells Spin to read `[host_component.cache]`.
+    get-key: func() -> string;
+
+    /// Called once at startup with the configuration for this host component,
+    /// serialized as a JSON string.
+    ///
+    /// The configuration is built from:
+    /// 1. The `[host_component.<key>]` table in spin.toml (if present)
+    /// 2. Merged with `--host-component-config` CLI values (if present, CLI wins)
+    ///
+    /// The JSON content is opaque to Spin — each host component defines its
+    /// own configuration schema. Return an error string if the configuration
+    /// is invalid.
+    ///
+    /// If no configuration is provided from either source, this function is
+    /// not called.
+    init: func(config: string) -> result<_, string>;
+}

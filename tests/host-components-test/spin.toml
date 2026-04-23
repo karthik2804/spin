@@ -1,0 +1,23 @@
+spin_manifest_version = 2
+
+[application]
+name = "host-components-test"
+version = "0.1.0"
+description = "Test app for dynamic host components"
+
+# Runtime configuration for the cache host component.
+# The cache provider's get-key export returns "cache", so Spin looks here.
+# max_bytes=32 so that LRU eviction tests work (two 20-byte entries exceed the limit).
+[host_component.cache]
+max_bytes = 32
+
+[[trigger.http]]
+route = "/..."
+component = "guest"
+
+[component.guest]
+source = "guest-app/target/wasm32-wasip2/release/guest_app.wasm"
+
+# Grant this component access to the cache host component.
+# The presence of this table means the guest can call cache interfaces.
+[component.guest.host_component.cache]
