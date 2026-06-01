@@ -1,0 +1,16 @@
+[package]
+name = "spin-plugin-plugin"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "spin_plugin_abi"
+
+[dependencies]
+postcard = { version = "1", features = ["alloc"] }
+serde = { workspace = true, features = ["derive"] }

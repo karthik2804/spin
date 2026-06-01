@@ -1,0 +1,12 @@
+package example:cache@0.1.1;
+
+interface store {
+    get: func(key: string) -> result<option<string>, string>;
+    set: func(key: string, value: string) -> result<_, string>;
+    delete: func(key: string) -> result<_, string>;
+    exists: func(key: string) -> result<bool, string>;
+}
+
+world cache-client {
+    import store;
+}

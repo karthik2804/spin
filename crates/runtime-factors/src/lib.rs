@@ -17,9 +17,10 @@ use spin_factor_outbound_mysql::OutboundMysqlFactor;
 use spin_factor_outbound_networking::OutboundNetworkingFactor;
 use spin_factor_outbound_pg::OutboundPgFactor;
 use spin_factor_outbound_redis::OutboundRedisFactor;
+use spin_factor_plugins::PluginsFactor;
 use spin_factor_sqlite::SqliteFactor;
 use spin_factor_variables::VariablesFactor;
-use spin_factor_wasi::{WasiFactor, spin::SpinFilesMounter};
+use spin_factor_wasi::{spin::SpinFilesMounter, WasiFactor};
 use spin_factors::RuntimeFactors;
 use spin_runtime_config::{ResolvedRuntimeConfig, TomlRuntimeConfigSource};
 use spin_variables_static::VariableSource;
@@ -38,6 +39,7 @@ pub struct TriggerFactors {
     pub pg: OutboundPgFactor,
     pub mysql: OutboundMysqlFactor,
     pub llm: LlmFactor,
+    pub plugins: PluginsFactor,
 }
 
 impl TriggerFactors {
@@ -47,6 +49,8 @@ impl TriggerFactors {
         allow_transient_writes: bool,
         experimental_wasi_otel: bool,
         spin_version: &str,
+        plugin_paths: Vec<(String, PathBuf)>,
+        plugin_configs: HashMap<String, String>,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             otel: OtelFactor::new(spin_version, experimental_wasi_otel)?,
@@ -64,6 +68,15 @@ impl TriggerFactors {
                 spin_factor_llm::spin::default_engine_creator(state_dir)
                     .context("failed to configure LLM factor")?,
             ),
+            plugins: PluginsFactor::new(
+                plugin_paths,
+                // Serialize configs as JSON bytes for plugin_init
+                plugin_configs
+                    .into_iter()
+                    .map(|(k, v)| Ok((k, v.into_bytes())))
+                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
+            )
+            .context("failed to create plugins factor")?,
         })
     }
 }
@@ -133,6 +146,15 @@ pub struct TriggerAppArgs {
     #[clap(long, value_parser = clap::value_parser!(VariableSource),
         value_name = "KEY=VALUE | KEY=@FILE | @FILE.json | @FILE.toml")]
     pub variable: Vec<VariableSource>,
+
+    /// Plugin shared library to load (name=path). Can be used multiple times.
+    #[clap(long = "plugin", value_parser = parse_kv)]
+    pub plugins: Vec<(String, String)>,
+
+    /// Plugin configuration (name=json). Can be used multiple times.
+    /// If the value starts with @, it's treated as a file path.
+    #[clap(long = "plugin-config", value_parser = parse_kv)]
+    pub plugin_configs: Vec<(String, String)>,
 
     /// Cache variables to avoid reading files twice
     #[clap(skip)]

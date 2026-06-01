@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use super::{TriggerAppArgs, TriggerFactors, TriggerFactorsRuntimeConfig};
@@ -49,12 +50,38 @@ impl RuntimeFactorsBuilder for FactorsBuilder {
         // This is a hack b/c we know the version of this crate will be the same as the version of Spin
         let spin_version = env!("CARGO_PKG_VERSION");
 
+        // Parse plugin args (name=path pairs)
+        let plugins: Vec<(String, PathBuf)> = args
+            .plugins
+            .iter()
+            .map(|(name, path)| (name.clone(), PathBuf::from(path)))
+            .collect();
+
+        // Parse plugin config args (name=json or name=@file.json)
+        let plugin_configs: HashMap<String, String> = args
+            .plugin_configs
+            .iter()
+            .map(|(name, value)| {
+                let json = if let Some(file_path) = value.strip_prefix('@') {
+                    std::fs::read_to_string(file_path).with_context(|| {
+                        format!("failed to read plugin config file '{}'", file_path)
+                    })?
+                } else {
+                    value.clone()
+                };
+                anyhow::Ok((name.clone(), json))
+            })
+            .collect::<anyhow::Result<_>>()
+            .context("failed to parse plugin configs")?;
+
         let factors = TriggerFactors::new(
             runtime_config.state_dir(),
             config.working_dir.clone(),
             args.allow_transient_write,
             args.experimental_wasi_otel,
             spin_version,
+            plugins,
+            plugin_configs,
         )
         .context("failed to create factors")?;
         Ok((factors, runtime_config))

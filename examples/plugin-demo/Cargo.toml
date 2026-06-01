@@ -1,0 +1,14 @@
+[package]
+name = "plugin-demo"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "plugin-demo"
+path = "main.rs"
+
+[dependencies]
+anyhow = "1"
+spin-plugin = { path = "../../crates/plugin" }
+tracing = "0.1"
+tracing-subscriber = "0.3"

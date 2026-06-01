@@ -1,0 +1,23 @@
+[package]
+name = "spin-factor-plugins"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+libloading = "0.8"
+postcard = { version = "1", features = ["alloc"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { version = "1", features = ["sync", "rt"] }
+tracing = { workspace = true }
+wasmtime = { workspace = true }
+wit-parser = { workspace = true }
+spin-factors = { path = "../factors" }
+spin-app = { path = "../app" }
+spin-plugin-plugin = { path = "../plugin-plugin" }

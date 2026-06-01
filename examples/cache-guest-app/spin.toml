@@ -1,0 +1,18 @@
+spin_manifest_version = 2
+
+[application]
+authors = ["Spin Framework Contributors"]
+description = "A Spin app that uses the cache plugin."
+name = "cache-guest-app"
+version = "0.1.0"
+
+[[trigger.http]]
+route = "/..."
+component = "cache-app"
+
+[component.cache-app]
+source = "target/wasm32-wasip2/release/cache_guest_app.wasm"
+allowed_outbound_hosts = []
+[component.cache-app.build]
+command = "cargo build --target wasm32-wasip2 --release"
+watch = ["src/**/*.rs", "wit/**/*.wit", "Cargo.toml"]

@@ -1,0 +1,14 @@
+package example:cache@0.1.1;
+
+interface store {
+    get: func(key: string) -> result<option<string>, string>;
+    set: func(key: string, value: string) -> result<_, string>;
+    delete: func(key: string) -> result<_, string>;
+    exists: func(key: string) -> result<bool, string>;
+}
+
+world cache-plugin {
+    export store;
+}
+
+/// This is a marker comment to ensure the version is preserved as 0.1.0
